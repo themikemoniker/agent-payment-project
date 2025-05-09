@@ -1,47 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>CrewAI Flask App</title>
+  <title>Shopstr Lightning Buyer</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    function askAgent(e) {
-      e.preventDefault();
-      const input = document.getElementById('user_input').value;
-      const output = document.getElementById('response');
-      output.textContent = '';
-
-      // Open streaming connection
-      const eventSource = new EventSource(`/ask?user_input=${encodeURIComponent(input)}`);
-
-      eventSource.onmessage = (event) => {
-        output.textContent += event.data;
-      };
-
-      eventSource.addEventListener("done", () => {
-        eventSource.close();
-      });
-
-      eventSource.onerror = () => {
-        eventSource.close();
-        output.textContent += "\n\n[An error occurred while streaming response]";
-      };
-    }
-  </script>
 </head>
-<body class="bg-gray-100 text-gray-900 min-h-screen flex items-center justify-center px-4">
-  <div class="bg-white shadow-md rounded-lg p-8 max-w-lg w-full">
-    <h1 class="text-2xl font-bold mb-4 flex items-center gap-2">🧠 Ask the CrewAI Agent</h1>
-    <form onsubmit="askAgent(event)" class="flex flex-col gap-4">
-      <input type="text" id="user_input" name="user_input" placeholder="Ask me anything..." class="border p-2 rounded text-lg" required>
-      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">
-        Ask
-      </button>
+<body class="bg-gray-100 text-gray-900 flex items-center justify-center min-h-screen px-4">
+  <div class="bg-white p-6 rounded-lg shadow max-w-xl w-full">
+    <h1 class="text-2xl font-bold mb-4">⚡ Buy a Shopstr Listing</h1>
+    <form method="POST" class="flex flex-col gap-4">
+      <input type="text" name="product_url" placeholder="Enter Shopstr product URL" class="border p-2 rounded" required>
+      <input type="text" name="nwc" placeholder="Enter NWC URI" class="border p-2 rounded" required>
+      <button type="submit" class="bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Buy with Bitcoin</button>
     </form>
-    <div class="mt-6">
-      <h2 class="text-lg font-semibold mb-2">Response:</h2>
-      <pre id="response" class="whitespace-pre-wrap bg-gray-100 border p-4 rounded min-h-[100px] text-base"></pre>
-    </div>
+
+    {% if response %}
+      <div class="mt-6">
+        <h2 class="text-lg font-semibold">Agent Response:</h2>
+        <pre class="bg-gray-100 p-4 rounded mt-2">{{ response }}</pre>
+      </div>
+    {% endif %}
   </div>
 </body>
 </html>

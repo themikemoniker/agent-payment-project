@@ -1,53 +1,51 @@
-from flask import Flask, render_template, request, Response, stream_with_context
-from flask_cors import CORS
-from crewai import Crew, Agent, Task
+from flask import Flask, render_template, request
+from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
+from shopstr_purchase_tool import ShopstrPurchaseTool
+from pay_invoice_tool import PayInvoiceTool
 from dotenv import load_dotenv
-import os
-import time
 
 load_dotenv()
-
 app = Flask(__name__)
-CORS(app)
 
-llm = ChatOpenAI(
-    model_name="gpt-3.5-turbo",
-    temperature=0.5,
-    streaming=True,
-)
+# LLM setup
+llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.3)
 
+# Tools
+shopstr_tool = ShopstrPurchaseTool()
+nwc_tool = PayInvoiceTool()
+
+# Agent definition
 agent = Agent(
-    role="Helpful Assistant",
-    goal="Answer user questions clearly and concisely",
-    backstory="An intelligent AI assistant that explains things simply.",
-    allow_delegation=False,
+    role="Lightning Shopper",
+    goal="Buy things from Shopstr using Bitcoin",
+    backstory="You assist users by retrieving invoices from Shopstr listings and paying them with NWC.",
+    tools=[shopstr_tool, nwc_tool],
+    allow_delegation=True,
     verbose=True,
     llm=llm
 )
 
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def index():
-    return render_template("index.html")
+    response = ""
+    if request.method == "POST":
+        product_url = request.form.get("product_url")
+        nwc_uri = request.form.get("nwc")
 
-@app.route("/ask", methods=["GET"])
-def ask():
-    user_input = request.args.get("user_input")
+        task = Task(
+            description=(
+                f"Visit this Shopstr product: {product_url}, submit the contact info, retrieve the Lightning "
+                f"invoice, and pay it using this NWC string: {nwc_uri}."
+            ),
+            expected_output="A confirmation that the invoice was paid.",
+            agent=agent
+        )
 
-    task = Task(
-        description=f"Respond to this user input: {user_input}",
-        expected_output="A helpful and complete answer to the user's question.",
-        agent=agent
-    )
+        crew = Crew(agents=[agent], tasks=[task])
+        response = crew.kickoff()
 
-    crew = Crew(agents=[agent], tasks=[task])
-    result = crew.kickoff()
-
-    def generate():
-        yield f"data: {result}\n\n"
-        yield "event: done\ndata: END\n\n"
-
-    return Response(stream_with_context(generate()), mimetype="text/event-stream")
+    return render_template("index.html", response=response)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000, threaded=True)
+    app.run(debug=True, port=5000)
