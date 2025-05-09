@@ -1,5 +1,5 @@
 from crewai.tools.base_tool import BaseTool
-from nwc_client import NWCClient
+from nwc_client_super import NWCClient
 
 class PayInvoiceTool(BaseTool):
     name: str = "PayLightningInvoice"
